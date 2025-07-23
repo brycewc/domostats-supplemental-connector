@@ -1,13 +1,28 @@
-httprequest.addHeader('X-DOMO-Developer-Token', metadata.account.accessToken);
+const accessToken = metadata.account.accessToken;
+const instance = metadata.account.instance;
 
-let res = httprequest.get(
-	'https://domo.domo.com/api/content/v1/customer-states/locale?ignoreCache=true'
-);
+if (accessToken.match('^[a-zA-Z0-9]+$')) {
+	if (instance.match('^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$')) {
+		httprequest.addHeader('X-DOMO-Developer-Token', accessToken);
 
-if (httprequest.getStatusCode() == 200) {
-	auth.authenticationSuccess();
+		let res = httprequest.get(
+			`https://${instance}.domo.com/api/dataprocessing/v1/dataflows/timezones`
+		);
+
+		if (httprequest.getStatusCode() == 200) {
+			auth.authenticationSuccess();
+		} else {
+			auth.authenticationFailed(
+				'The access token you entered is invalid. Please try again with a access token.'
+			);
+		}
+	} else {
+		auth.authenticationFailed(
+			'Your provided instance did not pass regex validation. Ensure you only include the instance name, without https:// and without .domo.com'
+		);
+	}
 } else {
 	auth.authenticationFailed(
-		'The access token you entered is invalid. Please try again with a access token.'
+		'Your provided credentials did not pass regex validation. Please check your access token format and try again.'
 	);
 }
