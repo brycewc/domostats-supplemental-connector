@@ -89,7 +89,6 @@ switch (report) {
 			offset: offset
 		};
 		break;
-	case 'Approval Templates':
 		// Approval Templates use a special two-step GraphQL process:
 		// 1. First, fetch a list of all templates with basic information
 		// 2. Then, fetch detailed information for each individual template
