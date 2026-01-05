@@ -1,8 +1,8 @@
 const accessToken = metadata.account.accessToken;
 const instance = metadata.account.instance;
 
-if (accessToken.match('^[a-zA-Z0-9]+$')) {
-	if (instance.match('^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$')) {
+if (accessToken.match(/^[a-zA-Z0-9]+$/)) {
+	if (instance.match(/^(?!.*\bdomo\\.com\b)\w[\w.-]+\w$/gm)) {
 		httprequest.addHeader('X-DOMO-Developer-Token', accessToken);
 
 		let res = httprequest.get(
