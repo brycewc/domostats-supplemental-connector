@@ -24,7 +24,7 @@ switch (report) {
 			onlyDeleted: false,
 			includeSupport: true,
 			limit: limit,
-			offset: offset,
+			offset: 0,
 			sort: {
 				field: 'created',
 				order: 'ASC'
