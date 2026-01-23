@@ -5,14 +5,12 @@ const instanceUrl = `https://${instance}.domo.com`;
 const baseUrl = `${instanceUrl}/api`;
 
 const limit = 100;
-let offset = 0;
-let moreData = true;
-let totalCount = 0;
 let body;
 let url = baseUrl;
 let root = report.toLowerCase();
 let processData = null;
 let totalProp = 'count';
+let filterVariants = [{}]; // Default to single variant with no additional filters
 
 httprequest.addHeader('X-DOMO-Developer-Token', accessToken);
 
@@ -86,44 +84,59 @@ switch (report) {
 				ascending: true
 			},
 			limit: limit,
-			offset: offset
+			offset: 0
 		};
+		// Define filter variants for archived and not archived
+		filterVariants = [{ field: 'archived' }, { field: 'notarchived' }];
 		break;
 	default:
 		datagrid.error(0, report + ' is not a supported report');
 }
 
-while (moreData) {
-	body.offset = offset;
-	const response = httprequest.post(url, JSON.stringify(body));
-	let data = JSON.parse(response);
-	if (httprequest.getStatusCode() == 200) {
-		if (data[root] && data[root].length > 0) {
-			let transformedData = data[root];
-			if (processData) {
-				transformedData = processData(data[root]);
-			}
-			// 	DOMO.log(JSON.stringify(transformedData));
-			transformedData = arraysToStrings(transformedData);
-			datagrid.magicParseJSON(JSON.stringify(transformedData));
+// Process each filter variant (e.g., archived and not archived for Functions)
+for (const filterVariant of filterVariants) {
+	let offset = 0;
+	let moreData = true;
+	let totalCount = 0;
 
-			totalCount += data[root].length;
-			offset += limit;
+	// Add filter to body if filterVariant has properties
+	const variantBody = structuredClone(body); // Deep clone
+	if (Object.keys(filterVariant).length > 0) {
+		variantBody.filters = [...(variantBody.filters || []), filterVariant];
+	}
 
-			if (totalCount >= data[totalProp]) {
+	while (moreData) {
+		variantBody.offset = offset;
+		const response = httprequest.post(url, JSON.stringify(variantBody));
+		let data = JSON.parse(response);
+		if (httprequest.getStatusCode() == 200) {
+			if (data[root] && data[root].length > 0) {
+				let transformedData = data[root];
+				if (processData) {
+					transformedData = processData(data[root]);
+				}
+				// 	DOMO.log(JSON.stringify(transformedData));
+				transformedData = arraysToStrings(transformedData);
+				datagrid.magicParseJSON(JSON.stringify(transformedData));
+
+				totalCount += data[root].length;
+				offset += limit;
+
+				if (totalCount >= data[totalProp]) {
+					moreData = false;
+				}
+			} else {
+				// No more data returned, stop loop
 				moreData = false;
 			}
 		} else {
-			// No more data returned, stop loop
-			moreData = false;
+			// Gracefully handle an http error
+			DOMO.log('Received Http Error: ' + httprequest.getStatusCode());
+			datagrid.error(
+				httprequest.getStatusCode(),
+				'Received HTTP error: ' + httprequest.getStatusCode()
+			);
 		}
-	} else {
-		// Gracefully handle an http error
-		DOMO.log('Received Http Error: ' + httprequest.getStatusCode());
-		datagrid.error(
-			httprequest.getStatusCode(),
-			'Received HTTP error: ' + httprequest.getStatusCode()
-		);
 	}
 }
 
